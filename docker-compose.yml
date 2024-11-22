@@ -1,0 +1,9 @@
+services:
+  web:
+    build: .
+    command: sh -c "pnpm install & pnpm dev"
+    volumes:
+      - .:/app
+    ports:
+      - 5173:5173
+    restart: always

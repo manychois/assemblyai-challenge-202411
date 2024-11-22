@@ -1,6 +1,7 @@
 node_modules
 
 # Output
+.pnpm-store
 .output
 .vercel
 /.svelte-kit
