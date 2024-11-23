@@ -13,7 +13,7 @@
 		</p>
 		<div class="mt-10 flex items-center justify-center gap-x-6">
 			<a
-				href="https://dev.to/manychois/youtube-x-karaoke-powered-by-assemblyai-18ll-temp-slug-46977"
+				href="https://dev.to/manychois/youtube-karaoke-sveltekit-app-powered-by-assemblyai-309d"
 				class="text-sm/6 font-semibold text-white"
 			>
 				The submission for the AssemblyAI Challenge by Siu Pang Tommy Choi
