@@ -9,7 +9,7 @@ import {
 import fs from 'node:fs';
 import { URL } from 'node:url';
 import { APP_DIR, SUPPORTED_LANGUAGES } from '$lib/common';
-import { ASSEMBLYAI_API_KEY } from '$env/static/private';
+import { ASSEMBLYAI_API_KEY, COOKIES_PATH } from '$env/static/private';
 import { fail } from '@sveltejs/kit';
 
 export const actions = {
@@ -109,7 +109,15 @@ function downloadYouTube(videoId: string, url: string): Promise<string> {
 			.access(tempFilePath)
 			.then(() => resolve(tempFilePath))
 			.catch(() => {
-				const command = `yt-dlp -o ${tempFilePath} -x --audio-format m4a --audio-quality 8 "${url}"`;
+				const command = [
+					'yt-dlp',
+					`-o ${tempFilePath}`,
+					COOKIES_PATH ? `--cookies ${COOKIES_PATH}` : '',
+					'-x',
+					'--audio-format m4a',
+					'--audio-quality 8',
+					`"${url}"`
+				].join(' ');
 				exec(command, (error) => {
 					if (error) {
 						console.error(`exec error: ${error}`);
