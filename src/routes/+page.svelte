@@ -250,7 +250,7 @@
 	.lyrics {
 		min-height: 15rem;
 		max-height: 30vh;
-		overflow: scroll;
+		overflow-y: scroll;
 	}
 
 	.word {
