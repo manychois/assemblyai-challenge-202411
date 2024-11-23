@@ -176,8 +176,7 @@
 					Pre-built examples
 				</label>
 				<div class="mt-2">
-
-					<div class="columns-3 ...">
+					<div class="columns-3">
 						<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" onclick={preselect}>
 							<img class="w-full" src="/1.jpg" alt="Rick Astley - Never Gonna Give You Up" />
 						</a>
@@ -188,7 +187,6 @@
 							<img class="w-full" src="/3.jpg" alt="Ron Wasserman - Go Go Power Rangers" />
 						</a>
 					</div>
-
 				</div>
 				<p class="mt-3 text-sm/6 text-gray-400">
 					Don't know which music video to pick? select one of the above to quickly see how this app
@@ -213,28 +211,34 @@
 	</div>
 </form>
 
-{#if form?.success}
-	<div class="my-12" class:processing>
-		<div class="mb-6">
-			<div id="player"></div>
+{#if form}
+	{#if form.success}
+		<div class="my-12" class:processing>
+			<div class="mb-6">
+				<div id="player"></div>
+			</div>
+			<div class="lyrics">
+				{#each form.lines as line}
+					<div class="line">
+						{#each line as { text, start, end }}
+							{@const duration = Math.round((end - start) / 100) * 100}
+							<span
+								class="word"
+								class:start={start <= currentTime}
+								data-text={text}
+								data-duration={duration}>{text}</span
+							>
+						{/each}
+					</div>
+				{/each}
+			</div>
 		</div>
-		<div class="lyrics">
-			{#each form.lines as line}
-				<div class="line">
-					{#each line as { text, start, end }}
-						{@const duration = Math.round((end - start) / 100) * 100}
-						<span
-							class="word"
-							class:start={start <= currentTime}
-							data-text={text}
-							data-duration={duration}>{text}</span
-						>
-					{/each}
-				</div>
-			{/each}
+		<script src="https://www.youtube.com/iframe_api"></script>
+	{:else}
+		<div class="my-12">
+			<p class="text-red-500">{form.errorMsg}</p>
 		</div>
-	</div>
-	<script src="https://www.youtube.com/iframe_api"></script>
+	{/if}
 {/if}
 
 <style lang="scss">

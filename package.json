@@ -1,9 +1,9 @@
 {
-	"name": "assemblyai-challenge",
+	"name": "assemblyai-challenge-202411",
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev --host",
+		"dev": "vite dev --host --port 5173",
 		"build": "vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

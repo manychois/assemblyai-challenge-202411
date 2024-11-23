@@ -7,69 +7,99 @@ import {
 	type TranscriptWord
 } from 'assemblyai';
 import fs from 'node:fs';
+import { URL } from 'node:url';
 import { APP_DIR, SUPPORTED_LANGUAGES } from '$lib/common';
 import { ASSEMBLYAI_API_KEY } from '$env/static/private';
+import { fail } from '@sveltejs/kit';
 
 export const actions = {
 	default: async ({ request }) => {
-		const data = await request.formData();
-		const url = data.get('url')?.toString() ?? '';
-		const videoId = url.split('v=')[1] ?? '';
-		const language = data.get('language')?.toString() ?? 'en';
-		const sampleJsonPath = `${APP_DIR}/samples/${videoId}.json`;
-		let transcript: Transcript;
-		try {
-			const sampleJson = await fs.promises.readFile(sampleJsonPath, 'utf-8');
-			transcript = JSON.parse(sampleJson) as Transcript;
-		} catch {
-			const tmpFilePath = await downloadYouTube(videoId, url);
-			transcript = await transcribe(videoId, language, tmpFilePath);
-		}
-
-		const textLines = (transcript.text ?? '').split(/(?<=\W)\s+|\s+(?=[A-Z][a-z]+)/);
-		let i = 0;
-		while (i < textLines.length - 1) {
-			const wordCount = textLines[i].split(/\s+/).length;
-			if (wordCount < 4) {
-				textLines[i] = (textLines[i] + ' ' + textLines[i + 1]).trim();
-				textLines.splice(i + 1, 1);
-			} else {
-				i++;
-			}
-		}
-		i = 0;
-		let j = 0;
-		const wordLines: TranscriptWord[][] = [[]];
-		for (const word of transcript.words ?? []) {
-			const line = textLines[i] ?? '';
-			if (line === '') {
-				wordLines[wordLines.length - 1].push(word);
-				continue;
-			}
-			const pos = line.indexOf(word.text, j);
-			if (pos === -1) {
-				wordLines.push([word]);
-				i++;
-				j = 0;
-			} else {
-				wordLines[wordLines.length - 1].push(word);
-				j = pos + word.text.length;
-			}
-		}
-
-		return {
-			success: true,
-			url,
-			language,
-			videoId,
-			lines: wordLines
+		const result: {
+			success: boolean;
+			url: string;
+			language: string;
+			errorMsg: string;
+			videoId: string;
+			lines: TranscriptWord[][];
+		} = {
+			success: false,
+			url: '',
+			language: '',
+			errorMsg: '',
+			videoId: '',
+			lines: []
 		};
+
+		try {
+			const data = await request.formData();
+			result.url = data.get('url')?.toString() ?? '';
+			const url = new URL(result.url);
+			result.videoId = url.searchParams.get('v') ?? '';
+			result.language = data.get('language')?.toString() ?? 'en';
+			const sampleJsonPath = `${APP_DIR}/samples/${result.videoId}.json`;
+			if (result.videoId === '') {
+				result.errorMsg = 'Invalid YouTube URL';
+				return fail(400, result);
+			}
+
+			let transcript: Transcript;
+			try {
+				const sampleJson = await fs.promises.readFile(sampleJsonPath, 'utf-8');
+				transcript = JSON.parse(sampleJson) as Transcript;
+			} catch {
+				const tmpFilePath = await downloadYouTube(result.videoId, url.toString());
+				transcript = await transcribe(result.videoId, result.language, tmpFilePath);
+			}
+
+			const textLines = splitLines(transcript.text ?? '');
+			let i = 0;
+			let j = 0;
+			const wordLines: TranscriptWord[][] = [[]];
+			for (const word of transcript.words ?? []) {
+				const line = textLines[i] ?? '';
+				if (line === '') {
+					wordLines[wordLines.length - 1].push(word);
+					continue;
+				}
+				const pos = line.indexOf(word.text, j);
+				if (pos === -1) {
+					wordLines.push([word]);
+					i++;
+					j = 0;
+				} else {
+					wordLines[wordLines.length - 1].push(word);
+					j = pos + word.text.length;
+				}
+			}
+
+			result.success = true;
+			result.lines.push(...wordLines);
+
+			return result;
+		} catch (ex) {
+			result.errorMsg = ex instanceof Error ? ex.message : JSON.stringify(ex);
+			return fail(500, result);
+		}
 	}
 } satisfies Actions;
 
 export async function load() {
-	// await clearTempFiles();
 	return { supportedLanguages: SUPPORTED_LANGUAGES };
+}
+
+function splitLines(content: string): string[] {
+	const textLines = content.split(/(?<=\W)\s+|\s+(?=[A-Z][a-z]+)/);
+	let i = 0;
+	while (i < textLines.length - 1) {
+		const wordCount = textLines[i].split(/\s+/).length;
+		if (wordCount < 4) {
+			textLines[i] = (textLines[i] + ' ' + textLines[i + 1]).trim();
+			textLines.splice(i + 1, 1);
+		} else {
+			i++;
+		}
+	}
+	return textLines;
 }
 
 function downloadYouTube(videoId: string, url: string): Promise<string> {
